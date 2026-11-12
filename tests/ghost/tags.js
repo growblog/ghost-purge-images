@@ -18,7 +18,7 @@ describe('lib/ghost/tags', () => {
       let output;
       try {
         const tags = [
-          { feature_image: '/uploads/same_image.jpg' }
+          { feature_image: '/content/images/same_image.jpg' }
         ];
         const upload = {
           path: 'content/images/same_image.jpg'

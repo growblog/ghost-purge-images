@@ -18,7 +18,7 @@ describe('lib/ghost/settings', () => {
       let output;
       try {
         const settings = {
-          logo: '/uploads/same_image.jpg'
+          logo: '/content/images/same_image.jpg'
         };
         const upload = {
           path: 'content/images/same_image.jpg'
@@ -56,7 +56,7 @@ describe('lib/ghost/settings', () => {
       let output;
       try {
         const settings = {
-          cover_image: '/uploads/same_image.jpg'
+          cover_image: '/content/images/same_image.jpg'
         };
         const upload = {
           path: 'content/images/same_image.jpg'
@@ -94,7 +94,7 @@ describe('lib/ghost/settings', () => {
       let output;
       try {
         const settings = {
-          icon: '/uploads/same_image.jpg'
+          icon: '/content/images/same_image.jpg'
         };
         const upload = {
           path: 'content/images/same_image.jpg'
@@ -132,7 +132,7 @@ describe('lib/ghost/settings', () => {
       let output;
       try {
         const settings = {
-          twitter_image: '/uploads/same_image.jpg'
+          twitter_image: '/content/images/same_image.jpg'
         };
         const upload = {
           path: 'content/images/same_image.jpg'
@@ -170,7 +170,7 @@ describe('lib/ghost/settings', () => {
       let output;
       try {
         const settings = {
-          og_image: '/uploads/same_image.jpg'
+          og_image: '/content/images/same_image.jpg'
         };
         const upload = {
           path: 'content/images/same_image.jpg'

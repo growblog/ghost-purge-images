@@ -15,22 +15,23 @@ describe('lib/ghost/posts', () => {
     });
 
     it('should return TRUE when is used on html', () => {
-      let error;
-      let output;
-      try {
-        const posts = [
-          { html: '<img src="/uploads/same_image.jpg" />' }
-        ];
-        const upload = {
-          path: 'same_image.jpg'
-        };
-        output = Posts.isBeingUsed(upload, posts);
-      } catch (err) {
-        error = err;
-      } finally {
-        expect(error).to.be.undefined;
-        expect(output).to.equal(true);
-      }
+      const posts = [
+        { html: '<img src="https://blog.example/content/images/2024/01/same_image.jpg" />' }
+      ];
+      const upload = {
+        path: '/var/www/ghost/content/images/2024/01/same_image.jpg'
+      };
+      expect(Posts.isBeingUsed(upload, posts)).to.equal(true);
+    });
+
+    it('should return FALSE when only the filename matches in another directory', () => {
+      const posts = [
+        { html: '<img src="https://blog.example/content/images/2020/05/same_image.jpg" />' }
+      ];
+      const upload = {
+        path: '/var/www/ghost/content/images/2024/01/same_image.jpg'
+      };
+      expect(Posts.isBeingUsed(upload, posts)).to.equal(false);
     });
 
     it('should return TRUE when is used as feature_image', () => {

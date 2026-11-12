@@ -1,24 +1,22 @@
-const ghost = require('./lib/ghost');
 const core = require('./lib/core');
+const { confirmPurge } = require('./lib/confirmPurge');
+const { runCommand } = require('./lib/runCommand');
 
-async function run() {
-  try {
-    const startTime = Date.now();
-    const [uploads, content] = await Promise.all([
-      ghost.uploads.list(),
-      ghost.content.fetch()
-    ]);
-    const input = {
-      uploads,
-      content
-    };
-    const unused = core.filterUnused(input);
-    await core.purge(unused);
-    console.log(`⏱  Completed in ${(Date.now()-startTime)/1000}s`);
-    return process.exit(0);
-  } catch (err) {
-    console.log(`❌ Error: ${err}`);
-  }
+function run(options = {}) {
+  const confirm = options.confirm || confirmPurge;
+  return runCommand(async(unused) => {
+    if (unused.incomplete && unused.incomplete.length > 0) {
+      return core.purge(unused);
+    }
+    if (options.ask && unused.list.length > 0) {
+      const accepted = await confirm(unused.list.length);
+      if (!accepted) {
+        console.log('Purge cancelled. No files were deleted.');
+        return { failed: false };
+      }
+    }
+    return core.purge(unused);
+  });
 }
 
 module.exports = {

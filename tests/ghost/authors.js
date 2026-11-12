@@ -18,7 +18,7 @@ describe('lib/ghost/authors', () => {
       let output;
       try {
         const authors = [
-          { profile_image: '/uploads/same_image.jpg' }
+          { profile_image: '/content/images/same_image.jpg' }
         ];
         const upload = {
           path: 'content/images/same_image.jpg'
@@ -56,7 +56,7 @@ describe('lib/ghost/authors', () => {
       let output;
       try {
         const authors = [
-          { cover_image: '/uploads/same_image.jpg' }
+          { cover_image: '/content/images/same_image.jpg' }
         ];
         const upload = {
           path: 'content/images/same_image.jpg'

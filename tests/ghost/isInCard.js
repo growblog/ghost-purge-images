@@ -101,7 +101,7 @@ describe('lib/ghost/isInCard', () => {
       }
     });
 
-    it('should return FALSE when the uploaded file is a video thumbnail', () => {
+    it('should return TRUE when the uploaded file is a video thumbnail', () => {
       let error;
       let output;
       try {
@@ -209,5 +209,27 @@ describe('lib/ghost/isInCard', () => {
         expect(output).to.equal(false);
       }
     });
+  });
+
+  describe('gallery card', () => {
+    it('returns TRUE when a gallery image uses the upload', () => {
+      const mobiledoc = JSON.stringify({
+        cards: [['gallery', {
+          images: [{ src: 'http://localhost:2368/content/images/2024/01/photo.jpg' }]
+        }]]
+      });
+      expect(isInCard('content/images/2024/01/photo.jpg', mobiledoc)).to.equal(true);
+    });
+
+    it('honours a custom card type list', () => {
+      const mobiledoc = JSON.stringify({
+        cards: [['image', { src: 'http://localhost:2368/content/images/2024/01/photo.jpg' }]]
+      });
+      expect(isInCard('content/images/2024/01/photo.jpg', mobiledoc, ['gallery'])).to.equal(false);
+    });
+  });
+
+  it('returns FALSE when mobiledoc is not valid JSON', () => {
+    expect(isInCard('content/images/2024/01/photo.jpg', '{not json')).to.equal(false);
   });
 });
