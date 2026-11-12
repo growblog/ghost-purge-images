@@ -9,22 +9,22 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=10",
-    "npm": ">=6"
+    "node": ">=22",
+    "npm": ">=10"
   },
-  "preferGlobal": true,
   "scripts": {
     "display": "node display.js;",
     "purge": "node purge.js;",
-    "test": "mocha tests --recursive --reporter spec --timeout 10000"
+    "test": "mocha tests --recursive --reporter spec --timeout 10000",
+    "lint": "eslint lib bin display.js purge.js"
   },
-  "main": "./bin/display.js",
+  "main": "./bin/ghost-purge-images.js",
   "bin": {
     "ghost-purge-images": "./bin/ghost-purge-images.js"
   },
   "dependencies": {
-    "axios": "^1.11.0",
-    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.21.0",
+    "jsonwebtoken": "^9.0.3",
     "minimist": "^1.2.8"
   },
   "devDependencies": {

@@ -3,6 +3,11 @@
   "env": {
     "mocha": true
   },
+  "settings": {
+    "react": {
+      "version": "18.3"
+    }
+  },
   "overrides": [
     {
       "files": ["./tests/**/*.js"],
@@ -33,7 +38,6 @@
     "import/no-extraneous-dependencies": 0,
     "import/newline-after-import": 0,
     "no-mixed-operators": 0,
-    "allowForLoopAfterthoughts": 1,
     "prefer-destructuring": ["error", {"object": false, "array": true}],
     "no-unused-vars": [
       2,
