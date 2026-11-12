@@ -1,5 +1,20 @@
 # 📋 Changelog
 
+## 4.1.0
+
+- Use the Ghost 6 Admin and Content APIs (`Accept-Version: v6.0`) and require Node.js 22
+- Read `GHOST_CONTENT_KEY` and `GHOST_ADMIN_KEY` from the environment, and do not print them
+- Renew the admin token on every API page
+- Match uploads by the exact public `/content/images` or `/content/media` path, including names with spaces, parentheses, commas or apostrophes
+- Include drafts, lexical, mobiledoc, galleries, code injection, newsletters, snippets, custom theme settings, authors without posts, internal tags and theme files on disk
+- Skip a missing `content/media` folder. If `content/themes` is missing or unreadable, delete nothing
+- Treat an empty API collection as empty. A 404 on an optional endpoint is empty. A 403 or 422 blocks deletion
+- Ask before `purge` on a terminal. `--yes` skips the question. An incomplete scan exits 1 and deletes nothing, before the question
+- Check that the parent directory can be written and traversed. `--fix-permissions` runs `sudo rm` only on that unused file inside the upload folders, and skips symlinks
+- Read `config.development.json` when production config is missing. Add `--themes-path` and `--help`
+- Exit 1 when a command, the scan or a delete fails
+- Add tests and CI for Node.js 22 and 24
+
 ## 4.0.0
 
 - Added support for Ghost 6 and Node.js 22

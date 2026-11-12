@@ -24,44 +24,53 @@ In your blog server, login via ssh and run:
 
 ## 🤓 Observations
 
-- Due [Content & Admin API](https://ghost.org/docs/api/v3/content/#resources), some **images associated to the next resouces will be removed**:
-    - **Authors with zero published posts**
-    - **Tags that are not associated with a post**
-    - **Drafts** (both posts/pages) will be removed too if you are not running **Ghost v2.16 or newer** 
-    
-        💡 Why? Drafts are only available in [Ghost Admin API](https://docs.ghost.org/api/admin/) included in **Ghost 2.16**
-- Backup your content folder first!
+- Backup your content folder first.
+- Drafts, authors without published posts, internal tags, snippets and custom theme settings are included through the [Admin API](https://docs.ghost.org/docs/admin-api/).
+- Theme templates in `content/themes` are read from disk. If that folder is missing or unreadable, `purge` deletes nothing.
+- If newsletters, themes, theme files, custom theme settings, snippets, admin settings, users or tags cannot be read, `purge` deletes nothing.
+- A missing `content/media` folder is skipped. Images in `content/images` are still checked.
 
 ## 🔑 Keys
 
-This tool use:
-- [Ghost Content API](https://docs.ghost.org/api/content/) for check authors & tags
-- [Ghost Admin API](https://docs.ghost.org/api/admin/) for check posts & pages, including drafts
+Set the keys in the environment. Do not pass them as command arguments: the shell saves them in its history, and `ps` shows them to other users on the server.
 
-Get the keys following this steps:
-- On your Ghost admin, click on **Integrations** at the left menu
+```sh
+export GHOST_CONTENT_KEY="your content api key"
+export GHOST_ADMIN_KEY="your admin api key"
+```
+
+This tool uses:
+- [Ghost Content API](https://docs.ghost.org/docs/content-api/) for settings
+- [Ghost Admin API](https://docs.ghost.org/docs/admin-api/) for posts, pages, drafts, authors, tags, newsletters, snippets and custom theme settings
+
+Get the keys following these steps:
+- On your Ghost admin, click on **Integrations** in the left menu
 - Click on **Add custom integration** and set any name
-- Copy the Content API & Admin API Keys to use them
+- Copy the Content API and Admin API keys
 
 💡 Need help? Check this [step-by-step guide to create them](https://ghostboard.io/blog/how-to-integrate-ghostboard-with-ghost-content-api/)
 
 ## 🚀 Execute
 
-Login into your server via ssh:
-- Where you have installed Ghost, usually:
+Log into your server via ssh, in the Ghost folder (usually `/var/www/ghost`), then:
 
-`cd /var/www/ghost`
-- Run a command, for example:
+```sh
+ghost-purge-images display
+ghost-purge-images purge
+```
 
-`ghost-purge-images display --content-key=YOUR_CONTENT_KEY --admin-key=YOUR_ADMIN_KEY`
+On a terminal, `purge` asks you to type `yes`. For a script, add `--yes`.
+
+`ghost-purge-images --help` lists every flag.
 
 ## ⚡️ Commands
 ### `display`
 
 Print the list of all uploaded images that currently are not being used in any post, page or metadata. Attempts to predict any errors before running `purge`.
 
-- Example: `ghost-purge-images display --content-key=YOUR_CONTENT_KEY --admin-key=YOUR_ADMIN_KEY`
-
+```sh
+ghost-purge-images display
+```
 
 ![ghost-purge-images display screenshot](https://user-images.githubusercontent.com/1589874/51084812-80e6f700-1730-11e9-96c4-4e106e4c7c63.png)
 
@@ -69,9 +78,12 @@ Print the list of all uploaded images that currently are not being used in any p
 
 Delete all the unused files.
 
-⚠️ WARNING: Take a backup before run this
+⚠️ WARNING: Take a backup before running this.
 
-- Example: `ghost-purge-images purge --content-key=YOUR_CONTENT_KEY --admin-key=YOUR_ADMIN_KEY`
+```sh
+ghost-purge-images purge
+ghost-purge-images purge --yes
+```
 
 ![ghost-purge-images purge screenshot](https://user-images.githubusercontent.com/1589874/51084808-73ca0800-1730-11e9-8c2a-a3b43551fbaa.png)
 
@@ -79,19 +91,15 @@ Delete all the unused files.
 
 - ### `--fix-permissions`
 
-💡 If you don't have necessary permissions to delete files, running `purge` may cause errors, such as `Error: EACCES: permission denied, unlink ANY_FILE_PATH`.
+💡 If you don't have permission to delete files, `purge` reports `EACCES`.
 
-You can allow the command to handle this for you.
-  - In `purge`, updates permissions to allow file deletion, and then reverts back to [production-ready permissions](https://github.com/TryGhost/Ghost-CLI/blob/main/lib/commands/doctor/checks/check-permissions.js) after purge is complete. *Note that this requires `sudo`, and restoring permissions may take a long time even on small sites.*
-  - In `display`, shows the file statuses as if permissions were already fixed.
-
-For backward compatibility, permissions are **not automatically fixed**. You can enable it with the flag `... --fix-permissions`
+`--fix-permissions` runs `sudo rm` on each unused file that could not be deleted. The file must sit inside the images or media folder. Symlinks are skipped. The command does not change permissions on the rest of the Ghost install.
 
 - ### `url`
 
-💡 By default, the URL in **config.production.json** will be used. This may be useful for Docker or custom configurations
+💡 By default the URL is read from `config.production.json`. If that file is missing, `config.development.json` is used. `NODE_ENV=development` checks the development file first.
 
-Example: `... --url=https://yourblog.com/`
+You can set `GHOST_URL` or pass `--url=https://yourblog.com/` for Docker and other custom setups.
 
 - ### `images-path`
 
@@ -104,6 +112,12 @@ You can change it with the optional param `... --images-path=your/custom/path/he
 💡 The **default media path** is `content/media`
 
 You can change it with the optional param `... --media-path=your/custom/path/here`
+
+- ### `themes-path`
+
+💡 The **default themes path** is `content/themes`
+
+You can change it with the optional param `... --themes-path=your/custom/path/here`
 
 - ### `exclude-ext`
 
