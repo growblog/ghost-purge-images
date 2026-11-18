@@ -4,6 +4,9 @@ const path = require('path');
 const expect = require('chai').expect;
 const display = require('../display');
 const purge = require('../purge');
+const backup = require('../backup');
+const quarantine = require('../quarantine');
+const restore = require('../restore');
 const content = require('../lib/ghost/content');
 const uploads = require('../lib/ghost/uploads');
 const bin = require('../bin/ghost-purge-images');
@@ -19,6 +22,9 @@ describe('cli', () => {
   const originals = {
     display: display.run,
     purge: purge.run,
+    backup: backup.run,
+    quarantine: quarantine.run,
+    restore: restore.run,
     assertReady: content.assertReady,
     fetch: content.fetch,
     list: uploads.list,
@@ -30,6 +36,9 @@ describe('cli', () => {
   afterEach(() => {
     display.run = originals.display;
     purge.run = originals.purge;
+    backup.run = originals.backup;
+    quarantine.run = originals.quarantine;
+    restore.run = originals.restore;
     content.assertReady = originals.assertReady;
     content.fetch = originals.fetch;
     uploads.list = originals.list;
@@ -94,6 +103,27 @@ describe('cli', () => {
       expect(received).to.deep.equal({ ask: true });
     });
 
+    it('runs backup, quarantine and restore with confirmation', () => {
+      const received = {};
+      backup.run = (options) => {
+        received.backup = options;
+      };
+      quarantine.run = (options) => {
+        received.quarantine = options;
+      };
+      restore.run = (options) => {
+        received.restore = options;
+      };
+      bin.main(['backup']);
+      bin.main(['quarantine']);
+      bin.main(['restore']);
+      expect(received).to.deep.equal({
+        backup: { ask: true },
+        quarantine: { ask: true },
+        restore: { ask: true }
+      });
+    });
+
     it('prints help without running a command', () => {
       const logs = [];
       console.log = (line) => logs.push(String(line));
@@ -105,6 +135,11 @@ describe('cli', () => {
       expect(text).to.include('GHOST_ADMIN_KEY');
       expect(text).to.include('--yes');
       expect(text).to.include('--themes-path');
+      expect(text).to.include('backup');
+      expect(text).to.include('quarantine');
+      expect(text).to.include('restore');
+      expect(text).to.include('--backup-path');
+      expect(text).to.include('--from');
     });
   });
 
@@ -296,6 +331,104 @@ describe('cli', () => {
       } catch (err) {
         expect(err.exitCode).to.equal(1);
         expect(codes).to.deep.equal([1]);
+      }
+    });
+  });
+
+  describe('quarantine.run()', () => {
+    it('moves an orphan and can be cancelled without moving', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const images = path.join(dir, 'images');
+      const quarantines = path.join(dir, 'quarantine');
+      const orphan = path.join(images, 'orphan.jpg');
+      fs.mkdirSync(images);
+      fs.writeFileSync(orphan, 'orphan');
+      const root = await fs.promises.realpath(images);
+      content.assertReady = () => ({});
+      content.fetch = async () => blogContent();
+      uploads.list = async () => {
+        const list = [{
+          path: orphan,
+          urlPath: '/content/images/orphan.jpg',
+          size: 6
+        }];
+        list.roots = [root];
+        return list;
+      };
+      console.log = () => {};
+      console.clear = () => {};
+      const codes = stubExit();
+      try {
+        await quarantine.run({
+          ask: true,
+          quarantinePath: quarantines,
+          confirm: async () => false
+        });
+        expect.fail('expected the command to exit');
+      } catch (err) {
+        expect(err.exitCode).to.equal(0);
+        expect(codes).to.deep.equal([0]);
+        expect(fs.existsSync(orphan)).to.equal(true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('does not move files when the scan is incomplete', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const orphan = path.join(dir, 'orphan.jpg');
+      fs.writeFileSync(orphan, 'orphan');
+      let asked = false;
+      content.assertReady = () => ({});
+      content.fetch = async () => blogContent({
+        incomplete: [{ resource: 'snippets', status: 403 }]
+      });
+      uploads.list = async () => [{
+        path: orphan,
+        urlPath: '/content/images/orphan.jpg',
+        size: 4
+      }];
+      console.log = () => {};
+      console.clear = () => {};
+      const codes = stubExit();
+      try {
+        await quarantine.run({
+          ask: true,
+          quarantinePath: path.join(dir, 'quarantine'),
+          confirm: async () => {
+            asked = true;
+            return true;
+          }
+        });
+        expect.fail('expected the command to exit');
+      } catch (err) {
+        expect(err.exitCode).to.equal(1);
+        expect(codes).to.deep.equal([1]);
+        expect(asked).to.equal(false);
+        expect(fs.existsSync(orphan)).to.equal(true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('restore.run()', () => {
+    it('exits 1 when no archive exists', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      console.log = () => {};
+      const codes = stubExit();
+      try {
+        await restore.run({
+          ask: false,
+          backupPath: path.join(dir, 'missing-backup'),
+          quarantinePath: path.join(dir, 'missing-quarantine')
+        });
+        expect.fail('expected the command to exit');
+      } catch (err) {
+        expect(err.exitCode).to.equal(1);
+        expect(codes).to.deep.equal([1]);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
       }
     });
   });

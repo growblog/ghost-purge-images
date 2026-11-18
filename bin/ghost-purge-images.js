@@ -2,10 +2,16 @@
 
 const display = require('../display');
 const purge = require('../purge');
+const backup = require('../backup');
+const quarantine = require('../quarantine');
+const restore = require('../restore');
 
 function printHelp() {
   console.log(`Usage:
   ghost-purge-images display
+  ghost-purge-images backup [--yes]
+  ghost-purge-images quarantine [--yes]
+  ghost-purge-images restore [--from=DIR] [--yes]
   ghost-purge-images purge [--yes]
   ghost-purge-images --help
 
@@ -17,15 +23,25 @@ Environment:
 Do not pass API keys as arguments. They are saved in shell history and shown by ps.
 
 Flags:
-  --yes               Delete without asking
+  --yes               Continue without asking
   --url               Blog URL
   --images-path       Defaults to content/images
   --media-path        Defaults to content/media
   --themes-path       Defaults to content/themes
   --exclude-ext       Comma-separated extensions to keep
   --fix-permissions   sudo rm only the unused files inside the upload folders
+  --backup-path       Parent folder for backup archives (default content/ghost-purge-backup)
+  --quarantine-path   Parent folder for quarantine archives (default content/ghost-purge-quarantine)
+  --from              Archive folder to restore (defaults to the latest backup or quarantine)
 
-On a terminal, purge asks you to type yes. Add --yes for a script.
+Commands:
+  display      List unused uploads without changing files
+  backup       Copy unused uploads into a timestamped archive
+  quarantine   Move unused uploads into a timestamped archive (#21)
+  restore      Copy files from a backup or quarantine archive back to their original paths
+  purge        Delete unused uploads permanently
+
+On a terminal, destructive commands ask you to type yes. Add --yes for a script.
 Without --url, the command reads config.production.json, then config.development.json.`);
 }
 
@@ -42,6 +58,15 @@ function main(argv = process.argv.slice(2)) {
   }
   if (command === 'purge') {
     return purge.run({ ask: true });
+  }
+  if (command === 'backup') {
+    return backup.run({ ask: true });
+  }
+  if (command === 'quarantine') {
+    return quarantine.run({ ask: true });
+  }
+  if (command === 'restore') {
+    return restore.run({ ask: true });
   }
   if (command === 'display') {
     return display.run();

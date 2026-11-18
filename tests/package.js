@@ -10,4 +10,8 @@ describe('package metadata', () => {
     expect(pkg.main).to.equal('./bin/ghost-purge-images.js');
     expect(pkg.preferGlobal).to.equal(undefined);
   });
+
+  it('is version 4.2.0', () => {
+    expect(pkg.version).to.equal('4.2.0');
+  });
 });

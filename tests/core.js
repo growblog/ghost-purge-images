@@ -39,11 +39,11 @@ function silenceConsole() {
   };
 }
 
-async function purgeQuietly(result) {
+async function withQuietConsole(work) {
   const previous = new Set(process.listeners('SIGINT'));
   const restore = silenceConsole();
   try {
-    return await core.purge(result);
+    return await work();
   } finally {
     restore();
     process.listeners('SIGINT').forEach((listener) => {
@@ -52,6 +52,22 @@ async function purgeQuietly(result) {
       }
     });
   }
+}
+
+async function purgeQuietly(result) {
+  return withQuietConsole(() => core.purge(result));
+}
+
+async function backupQuietly(result, options) {
+  return withQuietConsole(() => core.backup(result, options));
+}
+
+async function quarantineQuietly(result, options) {
+  return withQuietConsole(() => core.quarantine(result, options));
+}
+
+async function restoreQuietly(options) {
+  return withQuietConsole(() => core.restore(options));
 }
 
 describe('lib/core', () => {
@@ -193,6 +209,9 @@ describe('lib/core', () => {
         expect(logs.join('\n')).to.include('1 files of 4');
         expect(logs.join('\n')).to.include('1.00 MB');
         expect(logs.join('\n')).to.include('ghost-purge-images purge');
+        expect(logs.join('\n')).to.include('ghost-purge-images quarantine');
+        expect(logs.join('\n')).to.include('ghost-purge-images backup');
+        expect(logs.join('\n')).to.include('growblog.io');
         expect(logs.join('\n')).to.not.include('--content-key');
         expect(logs.join('\n')).to.not.include('--admin-key');
       } finally {
@@ -368,6 +387,82 @@ describe('lib/core', () => {
         });
         expect(outcome.failed).to.equal(true);
         expect(fs.existsSync(outside)).to.equal(true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('backup() and quarantine()', () => {
+    it('copies unused files into a backup archive and leaves originals', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const images = path.join(dir, 'images');
+      const backups = path.join(dir, 'backups');
+      const orphan = path.join(images, '2024', 'orphan.jpg');
+      fs.mkdirSync(path.dirname(orphan), { recursive: true });
+      fs.writeFileSync(orphan, 'orphan');
+      const root = await fs.promises.realpath(images);
+      try {
+        const outcome = await backupQuietly({
+          list: [{ path: orphan, size: 6 }],
+          roots: [root],
+          totalUploads: 1,
+          totalSpace: 6,
+          incomplete: []
+        }, { backupPath: backups });
+        expect(outcome.failed).to.equal(false);
+        expect(fs.existsSync(orphan)).to.equal(true);
+        expect(fs.existsSync(path.join(outcome.archiveDir, 'images', '2024', 'orphan.jpg'))).to.equal(true);
+        const manifest = JSON.parse(fs.readFileSync(path.join(outcome.archiveDir, 'manifest.json'), 'utf8'));
+        expect(manifest.mode).to.equal('backup');
+        expect(manifest.files).to.have.length(1);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('moves unused files into quarantine and can restore them', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const images = path.join(dir, 'images');
+      const quarantines = path.join(dir, 'quarantine');
+      const orphan = path.join(images, 'orphan.jpg');
+      fs.mkdirSync(images);
+      fs.writeFileSync(orphan, 'orphan');
+      const root = await fs.promises.realpath(images);
+      try {
+        const quarantined = await quarantineQuietly({
+          list: [{ path: orphan, size: 6 }],
+          roots: [root],
+          totalUploads: 1,
+          totalSpace: 6,
+          incomplete: []
+        }, { quarantinePath: quarantines });
+        expect(quarantined.failed).to.equal(false);
+        expect(fs.existsSync(orphan)).to.equal(false);
+        expect(fs.existsSync(path.join(quarantined.archiveDir, 'images', 'orphan.jpg'))).to.equal(true);
+
+        const restored = await restoreQuietly({ from: quarantined.archiveDir });
+        expect(restored.failed).to.equal(false);
+        expect(fs.readFileSync(orphan, 'utf8')).to.equal('orphan');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('does not quarantine when the scan is incomplete', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const orphan = path.join(dir, 'orphan.jpg');
+      fs.writeFileSync(orphan, 'keep');
+      try {
+        const outcome = await quarantineQuietly({
+          list: [{ path: orphan, size: 4 }],
+          roots: [],
+          totalUploads: 1,
+          totalSpace: 4,
+          incomplete: [{ resource: 'snippets', status: 403 }]
+        }, { quarantinePath: path.join(dir, 'quarantine') });
+        expect(outcome.failed).to.equal(true);
+        expect(fs.existsSync(orphan)).to.equal(true);
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }

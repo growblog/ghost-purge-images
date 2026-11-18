@@ -223,4 +223,62 @@ describe('lib/ghost/uploads', () => {
       }
     });
   });
+
+  describe('copy() and move()', () => {
+    it('copies a file inside the upload roots', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const images = path.join(dir, 'images');
+      const file = path.join(images, '2024', 'photo.jpg');
+      const destination = path.join(dir, 'backup', 'images', '2024', 'photo.jpg');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, 'photo');
+      const root = await fs.promises.realpath(images);
+      try {
+        await Uploads.copy(file, destination, { roots: [root] });
+        expect(fs.readFileSync(file, 'utf8')).to.equal('photo');
+        expect(fs.readFileSync(destination, 'utf8')).to.equal('photo');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('moves a file inside the upload roots', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const images = path.join(dir, 'images');
+      const file = path.join(images, 'orphan.jpg');
+      const destination = path.join(dir, 'quarantine', 'images', 'orphan.jpg');
+      fs.mkdirSync(images);
+      fs.writeFileSync(file, 'orphan');
+      const root = await fs.promises.realpath(images);
+      try {
+        await Uploads.move(file, destination, { roots: [root] });
+        expect(fs.existsSync(file)).to.equal(false);
+        expect(fs.readFileSync(destination, 'utf8')).to.equal('orphan');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('refuses to move a file outside the upload roots', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-purge-'));
+      const images = path.join(dir, 'images');
+      const outside = path.join(dir, 'outside.jpg');
+      fs.mkdirSync(images);
+      fs.writeFileSync(outside, 'keep');
+      const root = await fs.promises.realpath(images);
+      try {
+        try {
+          await Uploads.move(outside, path.join(dir, 'quarantine', 'outside.jpg'), {
+            roots: [root]
+          });
+          expect.fail('expected the move to be refused');
+        } catch (err) {
+          expect(err.code).to.equal('EPERM');
+        }
+        expect(fs.existsSync(outside)).to.equal(true);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
 });
