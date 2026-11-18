@@ -1,5 +1,13 @@
 # 📋 Changelog
 
+## 4.2.0
+
+- Add `backup` to copy unused uploads into a timestamped archive with `manifest.json`
+- Add `quarantine` to move unused uploads instead of deleting them ([#21](https://github.com/growblog/ghost-purge-images/issues/21))
+- Add `restore` to bring files back from the latest or a chosen backup/quarantine archive (`--from`)
+- Document the new commands, recommended flow, Docker `--url` usage, archive layout and Growblog branding in the README
+- Clarify incomplete-scan messages so they apply to backup, quarantine and purge
+
 ## 4.1.0
 
 - Use the Ghost 6 Admin and Content APIs (`Accept-Version: v6.0`) and require Node.js 22

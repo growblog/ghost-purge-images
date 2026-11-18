@@ -2,10 +2,10 @@
   "private": false,
   "name": "ghost-purge-images",
   "description": "Display or clean unused uploaded files: images, documents, audio, video & thumbnail files of your Ghost blog",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "author": {
     "name": "David Burgos",
-    "email": "support+github@ghostboard.io"
+    "email": "support+github@growblog.io"
   },
   "license": "MIT",
   "engines": {
@@ -16,7 +16,7 @@
     "display": "node display.js;",
     "purge": "node purge.js;",
     "test": "mocha tests --recursive --reporter spec --timeout 10000",
-    "lint": "eslint lib bin display.js purge.js"
+    "lint": "eslint lib bin display.js purge.js backup.js quarantine.js restore.js"
   },
   "main": "./bin/ghost-purge-images.js",
   "bin": {
